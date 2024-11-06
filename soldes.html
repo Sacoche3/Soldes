@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestion des Utilisateurs</title>
+    <!-- Importer Firebase depuis un CDN -->
+    <script type="module">
+        // Importer les fonctions nécessaires de Firebase
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.19.1/firebase-app.js";
+        import { getDatabase, ref, onValue, set } from "https://www.gstatic.com/firebasejs/9.19.1/firebase-database.js";
+
+        // Votre configuration Firebase
+        const firebaseConfig = {
+            apiKey: "AIzaSyCPQvlxIjvJPkMZQ4qElkHla_xQ5QiZfFs",
+            authDomain: "paris-3df9f.firebaseapp.com",
+            databaseURL: "https://paris-3df9f-default-rtdb.firebaseio.com",
+            projectId: "paris-3df9f",
+            storageBucket: "paris-3df9f.appspot.com",
+            messagingSenderId: "365107415196",
+            appId: "1:365107415196:web:4c0021baec5a51a0f50559"
+        };
+
+        // Initialiser Firebase
+        const app = initializeApp(firebaseConfig);
+        const database = getDatabase(app);
+
+        // Variable pour stocker les utilisateurs
+        let usersData = {};
+
+        // Fonction pour récupérer les utilisateurs
+        function fetchUsers() {
+            const usersRef = ref(database, 'users'); // Assurez-vous que la référence correspond à votre structure de données
+            onValue(usersRef, (snapshot) => {
+                usersData = snapshot.val() || {};
+                displayUsers(usersData);
+            });
+        }
+
+        // Fonction pour afficher les utilisateurs
+        function displayUsers(users) {
+            const usersList = document.getElementById('usersList');
+            usersList.innerHTML = ''; // Effacez la liste avant de la remplir
+
+            for (const userId in users) {
+                const user = users[userId];
+                const userItem = document.createElement('div');
+                userItem.innerHTML = `
+                    <p>Email: ${user.email} - Solde: <span id="balance-${userId}">${user.balance}</span></p>
+                    <input type="number" id="newBalance-${userId}" placeholder="Nouveau Solde" />
+                    <button onclick="updateBalance('${userId}')">Modifier Solde</button>
+                `;
+                usersList.appendChild(userItem);
+            }
+        }
+
+        // Fonction pour mettre à jour le solde d'un utilisateur
+        window.updateBalance = function(userId) {
+            const newBalance = document.getElementById(`newBalance-${userId}`).value;
+            if (newBalance) {
+                set(ref(database, `users/${userId}/balance`), newBalance)
+                    .then(() => {
+                        alert('Solde mis à jour avec succès');
+                        fetchUsers(); // Rafraîchir la liste des utilisateurs après la mise à jour
+                    })
+                    .catch((error) => {
+                        alert('Erreur lors de la mise à jour du solde: ' + error.message);
+                    });
+            } else {
+                alert('Veuillez entrer un nouveau solde');
+            }
+        };
+
+        // Fonction de recherche des utilisateurs
+        window.searchUsers = function() {
+            const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+            const filteredUsers = Object.fromEntries(
+                Object.entries(usersData).filter(([_, user]) => user.email.toLowerCase().includes(searchTerm))
+            );
+            displayUsers(filteredUsers);
+        };
+
+        // Charger les utilisateurs au démarrage
+        window.onload = fetchUsers;
+    </script>
+</head>
+<body>
+    <h1>Gestion des Utilisateurs</h1>
+
+    <!-- Section de recherche -->
+    <div>
+        <input type="text" id="searchInput" placeholder="Rechercher par email" oninput="searchUsers()" />
+    </div>
+
+    <div id="usersList"></div>
+</body>
+</html>
